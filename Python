@@ -1,1 +1,29 @@
 
+	import pandas as pd
+
+	df = pd.read_csv("sales_data.csv")
+
+	# Show schema and data
+	print(df.dtypes)
+	print(df.head())
+
+	# Add a new column
+	df["source"] = "manual_upload"
+	print(df)
+
+	Program-2
+
+	import pandas as pd
+
+	df = pd.read_csv("sales_data.csv")
+
+	# Convert price and quantity to numeric
+	df["price"] = pd.to_numeric(df["price"])
+	df["quantity"] = pd.to_numeric(df["quantity"])
+
+	# Add total_sales column
+	df["total_sales"] = df["price"] * df["quantity"]
+
+	# Filter where total_sales > 1000
+	high_value_sales = df[df["total_sales"] > 1000]
+	print(high_value_sales)
