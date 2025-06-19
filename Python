@@ -27,3 +27,409 @@
 	# Filter where total_sales > 1000
 	high_value_sales = df[df["total_sales"] > 1000]
 	print(high_value_sales)
+
+
+	import pandas as pd
+
+	df = pd.read_csv("sales_data.csv")
+
+	# Show schema and data
+	print(df.dtypes)
+	print(df.head())
+
+	# Add a new column
+	df["source"] = "manual_upload"
+	print(df)
+
+	Program-2
+
+	import pandas as pd
+
+	df = pd.read_csv("sales_data.csv")
+
+	# Convert price and quantity to numeric
+	df["price"] = pd.to_numeric(df["price"])
+	df["quantity"] = pd.to_numeric(df["quantity"])
+	
+	# Add total_sales column
+	df["total_sales"] = df["price"] * df["quantity"]
+
+	# Filter where total_sales > 1000
+	high_value_sales = df[df["total_sales"] > 1000]
+	print(high_value_sales)
+
+
+Program-3
+
+import pandas as pd
+
+# Load fresh data
+df = pd.read_csv("sales_data.csv")
+df["price"]  = pd.to_numeric(df["price"])
+df["quantity"] = pd.to_numeric(df["quantity"])
+df["total_sales"] = df["price"] * df["quantity"]
+
+# 1. Filter: keep only records where total_sales > 600
+high_sales = df[df["total_sales"] > 600]
+
+# 2. Sort: by total_sales descending, then by sale_date ascending
+sorted_sales = high_sales.sort_values(
+    by=["total_sales", "sale_date"], 
+    ascending=[False, True]
+)
+
+# 3. Rename: change 'sale_date' to 'date_of_sale'
+sorted_sales = sorted_sales.rename(columns={"sale_date": "date_of_sale"})
+
+# 4. Select/Drop: keep only ['sale_id', 'product', 'total_sales', 'date_of_sale']
+final_df = sorted_sales[["sale_id", "product", "total_sales", "date_of_sale"]]
+
+print(final_df)
+
+Program-4
+import pandas as pd
+
+# Load and prepare data
+df = pd.read_csv("sales_data.csv")
+df["price"]       = pd.to_numeric(df["price"])
+df["quantity"]    = pd.to_numeric(df["quantity"])
+df["total_sales"] = df["price"] * df["quantity"]
+
+# 1. Total revenue overall
+total_revenue = df["total_sales"].sum()
+print("Total Revenue:", total_revenue)
+
+# 2. Revenue per product
+rev_by_product = df.groupby("product")["total_sales"].sum().reset_index()
+print("\nRevenue by Product:\n", rev_by_product)
+
+# 3. Multiple aggregations per product
+stats_by_product = df.groupby("product").agg(
+    total_sales   = ("total_sales", "sum"),
+    avg_quantity  = ("quantity",    "mean"),
+    sale_count    = ("sale_id",     "count"),
+)
+print("\nStats by Product:\n", stats_by_product)
+
+# 4. Overall summary stats
+summary = df["total_sales"].agg(["min", "max", "mean"])
+print("\nOverall Sales Summary:\n", summary)
+	
+
+
+Program-5
+import pandas as pd
+
+# Sample Sales Data
+sales = pd.DataFrame({
+    "sale_id": [101, 102, 103, 104],
+    "product_id": [1, 2, 1, 3],
+    "amount": [250, 450, 125, 300]
+})
+
+# Product Lookup Table
+products = pd.DataFrame({
+    "product_id": [1, 2, 3, 4],
+    "product_name": ["Laptop", "Phone", "Tablet", "Monitor"]
+})
+
+# 1. Inner Join (only matching keys)
+inner = pd.merge(sales, products, on="product_id", how="inner")
+print("Inner Join:\n", inner)
+
+# 2. Left Join (all sales, with product info if available)
+left = pd.merge(sales, products, on="product_id", how="left")
+print("\nLeft Join:\n", left)
+
+# 3. Right Join (all products, with sales info if available)
+right = pd.merge(sales, products, on="product_id", how="right")
+print("\nRight Join:\n", right)
+
+# 4. Outer Join (all records)
+outer = pd.merge(sales, products, on="product_id", how="outer")
+print("\nOuter Join:\n", outer)
+
+Program-6
+import pandas as pd
+
+# Load dataset
+df = pd.read_csv("movies.csv")
+
+# 1. Inspect
+print(df.dtypes)
+print(df.head())
+
+# 2. Filter: Action movies
+action_df = df[df["genre"] == "Action"]
+
+# 3. Average rating per genre
+avg_rating = df.groupby("genre")["rating"].mean().reset_index()
+print("\nAverage Rating per Genre:\n", avg_rating)
+
+# 4. Top-5 movies by rating in each genre
+top5_per_genre = (
+    df.sort_values(["genre", "rating"], ascending=[True, False])
+      .groupby("genre")
+      .head(5)
+      .reset_index(drop=True)
+)
+print("\nTop 5 Movies per Genre:\n", top5_per_genre)
+
+Program-7
+import pandas as pd
+
+# Load dataset
+df = pd.read_csv("transactions.csv")
+
+# 1. Inspect
+print(df.dtypes)
+print(df.head())
+
+# 2. Daily total sales per store
+#    Assume columns: transaction_id, store_id, amount, items, returned (0/1), date
+daily_sales = (
+    df.groupby(["store_id", "date"])["amount"]
+      .sum()
+      .reset_index(name="daily_total_sales")
+)
+print("\nDaily Sales:\n", daily_sales)
+
+# 3. Average basket size per store
+basket_size = (
+    df.groupby("store_id")["items"]
+      .mean()
+      .reset_index(name="avg_basket_size")
+)
+print("\nAverage Basket Size:\n", basket_size)
+
+# 4. Return percentage per store
+return_stats = (
+    df.groupby("store_id")["returned"]
+      .agg(total_txn="count", returns="sum")
+      .reset_index()
+)
+return_stats["return_pct"] = return_stats["returns"] / return_stats["total_txn"] * 100
+print("\nReturn Percentage:\n", return_stats)
+
+Program-8
+import pandas as pd
+
+# Sample DataFrame
+df = pd.DataFrame({
+    "product": ["Laptop", "Phone", "Tablet", None],
+    "price": [1200, 650, 400, 300]
+})
+
+# 1. Define a custom function
+def classify_price(row):
+    if row["price"] > 1000:
+        return "Premium"
+    elif row["price"] > 500:
+        return "Mid-Range"
+    else:
+        return "Budget"
+
+# 2. Apply function to DataFrame
+df["category"] = df.apply(lambda row: classify_price(row), axis=1)
+
+# 3. Handle nulls: fill missing product names
+df["product"] = df["product"].fillna("Unknown")
+
+print(df)
+
+Program-9
+import pandas as pd
+from datetime import datetime, timedelta
+
+# Sample DataFrame
+df = pd.DataFrame({
+    "order_id": [1, 2, 3, 4],
+    "order_date": ["2025-05-10", "2025-06-01", "2025-06-10", "2025-06-15"]
+})
+
+# 1. Parse to datetime
+df["order_date"] = pd.to_datetime(df["order_date"], format="%Y-%m-%d")
+
+# 2. Extract components
+df["year"]  = df["order_date"].dt.year
+df["month"] = df["order_date"].dt.month
+df["day"]   = df["order_date"].dt.day
+
+# 3. Compute days since each order
+today = datetime.now()
+df["days_since"] = (today - df["order_date"]).dt.days
+
+# 4. Filter last 30 days
+recent = df[df["order_date"] >= (today - timedelta(days=30))]
+print("\nRecent Orders (last 30 days):\n", recent)
+
+Program-10
+
+import pandas as pd
+
+# Load and prepare data
+df = pd.read_csv("sales_data.csv")
+df["price"]       = pd.to_numeric(df["price"])
+df["quantity"]    = pd.to_numeric(df["quantity"])
+df["total_sales"] = df["price"] * df["quantity"]
+
+# 1. Write to CSV (overwrite)
+df.to_csv("output_sales.csv", index=False)
+
+# 2. Write to JSON
+df.to_json("output_sales.json", orient="records", lines=True)
+
+# 3. Write to Parquet (requires pyarrow or fastparquet)
+df.to_parquet("output_sales.parquet", index=False)
+
+# 4. Append to existing CSV
+df.tail(2).to_csv("output_sales.csv", mode="a", header=False, index=False)
+
+
+Program-11
+import pandas as pd
+import itertools
+
+# Sample DataFrame
+df = pd.DataFrame({
+    "product": ["A", "A", "B", "B", "A"],
+    "date":    pd.to_datetime(["2025-06-01","2025-06-02","2025-06-01","2025-06-02","2025-06-03"]),
+    "sales":   [100, 200, 150, 250, 300]
+})
+
+# 1. Running total per product
+df["running_total"] = df.groupby("product")["sales"].cumsum()
+
+# 2. Row number and rank per product by date
+df["row_num"] = df.groupby("product")["date"].rank(method="first").astype(int)
+df["dense_rank"] = df.groupby("product")["sales"].rank(method="dense", ascending=False).astype(int)
+
+# 3. Lag and lead: shift within group
+df["prev_sales"] = df.groupby("product")["sales"].shift(1)
+df["next_sales"] = df.groupby("product")["sales"].shift(-1)
+
+print(df)
+
+Program-12
+
+import pandas as pd
+import re
+
+# Sample DataFrame
+df = pd.DataFrame({
+    "email": ["a@example.com", "bad-email", None, "c@example.org"],
+    "age":   [25, 150, 30, -5],
+    "id":    [1, 2, 2, 4]
+})
+
+# 1. Non-null checks
+valid = df.dropna(subset=["email", "age"])
+print("After non-null filter:\n", valid)
+
+# 2. Email pattern validation
+email_pattern = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
+valid["email_valid"] = valid["email"].apply(lambda e: bool(email_pattern.match(e)))
+print("\nEmail validation:\n", valid)
+
+# 3. Age constraints (0 < age < 120)
+valid = valid[(valid["age"] > 0) & (valid["age"] < 120)]
+print("\nAfter age constraints:\n", valid)
+
+# 4. Duplicates on id
+duplicates = df[df.duplicated(subset=["id"], keep=False)]
+print("\nDuplicate IDs:\n", duplicates)
+
+
+Program-13
+import pandas as pd
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
+
+def load_data(path):
+    try:
+        df = pd.read_csv(path)
+        logging.info(f"Loaded data from {path}, shape: {df.shape}")
+        return df
+    except FileNotFoundError:
+        logging.error(f"File not found: {path}")
+        return pd.DataFrame()
+    except Exception as e:
+        logging.error(f"Error loading data: {e}")
+        return pd.DataFrame()
+
+def process_data(df):
+    try:
+        df['total'] = pd.to_numeric(df['price']) * pd.to_numeric(df['quantity'])
+        logging.info("Processed total sales column")
+    except KeyError as e:
+        logging.error(f"Missing column: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error: {e}")
+
+if __name__ == "__main__":
+    data = load_data("sales_data.csv")
+    process_data(data)
+
+Program-14
+import pandas as pd
+
+def extract(path):
+    return pd.read_csv(path)
+
+def transform(df):
+    # 1. Drop rows with missing critical fields
+    df = df.dropna(subset=["sale_id", "price", "quantity"])
+    # 2. Convert types
+    df["price"]    = pd.to_numeric(df["price"])
+    df["quantity"] = pd.to_numeric(df["quantity"])
+    # 3. Derive new column: total_sales and discount_flag
+    df["total_sales"]   = df["price"] * df["quantity"]
+    df["discount_flag"] = df["total_sales"] > 1000
+    return df
+
+def load(df, out_path):
+    df.to_parquet(out_path, index=False)
+
+def run_pipeline(input_path, output_path):
+    df_raw  = extract(input_path)
+    df_transformed = transform(df_raw)
+    load(df_transformed, output_path)
+    print(f"Pipeline complete: {len(df_transformed)} records written to {output_path}")
+
+if __name__ == "__main__":
+    run_pipeline("sales_data.csv", "processed_sales.parquet")
+
+
+
+Program-15
+
+import pandas as pd
+import time
+
+# Benchmark original pipeline
+start = time.time()
+df = pd.read_csv("sales_data.csv")
+df["price"] = pd.to_numeric(df["price"])
+df["quantity"] = pd.to_numeric(df["quantity"])
+df["total_sales"] = df["price"] * df["quantity"]
+filtered = df[df["total_sales"] > 1000]
+end = time.time()
+print(f"Original pipeline took {end - start:.4f} seconds")
+
+# Optimization: vectorized operations are already used.
+# Further: use .query() for filtering and chaining to reduce copies
+start_opt = time.time()
+df_opt = (
+    pd.read_csv("sales_data.csv")
+      .assign(
+          price=lambda x: pd.to_numeric(x["price"]),
+          quantity=lambda x: pd.to_numeric(x["quantity"]),
+          total_sales=lambda x: x["price"] * x["quantity"]
+      )
+      .query("total_sales > 1000")
+)
+end_opt = time.time()
+print(f"Optimized pipeline took {end_opt - start_opt:.4f} seconds")
+
