@@ -1,1 +1,151 @@
-PySpark
+
+# Dual Implementation: Python and PySpark for Same Scenarios
+
+# ----------------------
+# 1. Filter & Aggregate Sales
+# ----------------------
+# Sample data: [(product, amount)]
+sales = [("A", 200), ("B", 600), ("A", 700), ("B", 300)]
+
+# Python
+from collections import defaultdict
+agg = defaultdict(int)
+for prod, amt in sales:
+    if amt > 500:
+        agg[prod] += amt
+print(dict(agg))
+
+# PySpark
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, sum
+spark = SparkSession.builder.getOrCreate()
+df = spark.createDataFrame(sales, ["product", "amount"])
+df.filter(col("amount") > 500).groupBy("product").agg(sum("amount").alias("total")).show()
+
+# ----------------------
+# 2. Find 2nd Highest Salary
+# ----------------------
+salaries = [5000, 8000, 6000, 8000]
+# Python
+second = sorted(set(salaries), reverse=True)[1]
+print(second)
+
+# PySpark
+from pyspark.sql.window import Window
+from pyspark.sql.functions import dense_rank
+salary_df = spark.createDataFrame([(s,) for s in salaries], ["salary"])
+windowSpec = Window.orderBy(col("salary").desc())
+salary_df.withColumn("r", dense_rank().over(windowSpec)).filter("r = 2").show()
+
+# ----------------------
+# 3. JSON Flatten
+# ----------------------
+data = [{"user": {"name": "A", "city": "NY"}}, {"user": {"name": "B", "city": "LA"}}]
+# Python
+flat = [(d["user"]["name"], d["user"]["city"]) for d in data]
+print(flat)
+
+# PySpark
+json_df = spark.read.json(spark.sparkContext.parallelize(data))
+json_df.select("user.name", "user.city").show()
+
+# ----------------------
+# 4. Time Difference
+# ----------------------
+from datetime import datetime
+# Python
+times = ["2024-01-01 10:00:00", "2024-01-01 10:05:00", "2024-01-01 10:10:00"]
+fmt = "%Y-%m-%d %H:%M:%S"
+diffs = [(datetime.strptime(t2, fmt) - datetime.strptime(t1, fmt)).seconds for t1, t2 in zip(times, times[1:])]
+print(diffs)
+
+# PySpark
+from pyspark.sql.functions import to_timestamp, lag
+from pyspark.sql.types import StringType
+from pyspark.sql.functions import unix_timestamp
+
+time_df = spark.createDataFrame([(t,) for t in times], ["ts"])
+time_df = time_df.withColumn("ts", to_timestamp("ts"))
+window = Window.orderBy("ts")
+time_df.withColumn("prev", lag("ts").over(window))\
+        .withColumn("diff_secs", (unix_timestamp("ts") - unix_timestamp("prev")))\
+        .show()
+
+# ----------------------
+# 5. Remove Duplicates
+# ----------------------
+names = ["Alice", "Bob", "Alice", "Carol"]
+# Python
+seen = set()
+unique = [x for x in names if not (x in seen or seen.add(x))]
+print(unique)
+
+# PySpark
+df_names = spark.createDataFrame([(x,) for x in names], ["name"])
+df_names.dropDuplicates().show()
+
+# ----------------------
+# 6. Top N Frequent Words
+# ----------------------
+text = "a a b b b c"
+# Python
+from collections import Counter
+words = text.split()
+print(Counter(words).most_common(2))
+
+# PySpark
+words_df = spark.createDataFrame([(w,) for w in text.split()], ["word"])
+words_df.groupBy("word").count().orderBy(col("count").desc()).show(2)
+
+# ----------------------
+# 7. Null Handling
+# ----------------------
+data_with_nulls = [{"a": 1}, {"a": None}, {"a": 3}]
+# Python
+vals = [d["a"] for d in data_with_nulls if d["a"] is not None]
+avg = sum(vals) / len(vals)
+filled = [d["a"] if d["a"] is not None else avg for d in data_with_nulls]
+print(filled)
+
+# PySpark
+from pyspark.sql.functions import avg as _avg
+null_df = spark.createDataFrame(data_with_nulls)
+avg_val = null_df.select(_avg("a")).collect()[0][0]
+null_df.fillna({"a": avg_val}).show()
+
+# ----------------------
+# 8. File Read, Filter, Save (Assuming temp file)
+# Python (CSV handling)
+import csv
+rows = [["name", "score"], ["A", 90], ["B", 50], ["C", 70]]
+filtered = [row for row in rows[1:] if int(row[1]) > 60]
+print(filtered)
+
+# PySpark (DataFrame filter and write)
+temp_df = spark.createDataFrame([("A", 90), ("B", 50), ("C", 70)], ["name", "score"])
+temp_df.filter(col("score") > 60).write.mode("overwrite").csv("/tmp/high_scores")
+
+# ----------------------
+# 9. Running Totals
+# ----------------------
+amounts = [100, 200, 300]
+# Python
+import itertools
+print(list(itertools.accumulate(amounts)))
+
+# PySpark
+amt_df = spark.createDataFrame([(x,) for x in amounts], ["amount"])
+window = Window.orderBy("amount").rowsBetween(Window.unboundedPreceding, 0)
+amt_df.withColumn("running_total", sum("amount").over(window)).show()
+
+# ----------------------
+# 10. Schema Validation
+# ----------------------
+records = [{"id": 1}, {"name": "X"}]
+# Python
+valid = [r for r in records if "id" in r]
+print(valid)
+
+# PySpark
+schema_df = spark.createDataFrame(records)
+schema_df.filter("id is not null").show()
